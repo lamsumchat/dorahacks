@@ -38,7 +38,7 @@ PROVIDER_CONFIG = {
 @dataclass
 class LLMConfig:
     provider: str = "deepseek"
-    model: str = "deepseek-v4-pro"
+    model: str = "deepseek-v4-flash"
 
     @property
     def api_key_env_var(self) -> str:
