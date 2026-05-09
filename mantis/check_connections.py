@@ -73,33 +73,34 @@ async def check_bybit(cfg) -> tuple[str, bool, str]:
 async def check_llm(cfg) -> tuple[str, bool, str]:
     """Verify LLM API key is set and provider is reachable (lightweight ping)."""
     llm_cfg = cfg.main_llm
+    label = f"LLM ({llm_cfg.provider}/{llm_cfg.model})"
     key = llm_cfg.api_key
     if not key:
-        return f"LLM ({llm_cfg.provider})", False, f"API key not set ({llm_cfg.api_key_env_var})"
+        return label, False, f"API key not set ({llm_cfg.api_key_env_var})"
 
-    if llm_cfg.provider == "zhipu":
-        url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-        body = {
-            "model": llm_cfg.model,
-            "messages": [{"role": "user", "content": "ping"}],
-            "max_tokens": 5,
-        }
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(url, json=body, headers=headers)
-                data = resp.json()
-                if resp.status_code == 200:
-                    return f"LLM ({llm_cfg.provider}/{llm_cfg.model})", True, "OK"
-                return (
-                    f"LLM ({llm_cfg.provider}/{llm_cfg.model})",
-                    False,
-                    data.get("error", {}).get("message", resp.text[:100]),
-                )
-        except Exception as e:
-            return f"LLM ({llm_cfg.provider})", False, str(e)
+    base_url = llm_cfg.base_url
+    if not base_url:
+        return label, False, f"provider '{llm_cfg.provider}' has no base_url configured"
 
-    return f"LLM ({llm_cfg.provider})", False, "provider check not implemented yet (key is set)"
+    url = f"{base_url}/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    body = {
+        "model": llm_cfg.model,
+        "messages": [{"role": "user", "content": "Say OK"}],
+        "max_tokens": 5,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json=body, headers=headers)
+            data = resp.json()
+            if resp.status_code == 200:
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                return label, True, f'response: "{content.strip()[:50]}"'
+            err = data.get("error", {})
+            msg = err.get("message", resp.text[:120]) if isinstance(err, dict) else str(err)[:120]
+            return label, False, msg
+    except Exception as e:
+        return label, False, str(e)
 
 
 async def main():

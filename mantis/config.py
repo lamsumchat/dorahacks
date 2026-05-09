@@ -11,25 +11,48 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+PROVIDER_CONFIG = {
+    "deepseek": {
+        "env_var": "DEEPSEEK_API_KEY",
+        "base_url": "https://api.deepseek.com",
+    },
+    "zhipu": {
+        "env_var": "ZHIPU_API_KEY",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    },
+    "openai": {
+        "env_var": "OPENAI_API_KEY",
+        "base_url": "https://api.openai.com/v1",
+    },
+    "anthropic": {
+        "env_var": "ANTHROPIC_API_KEY",
+        "base_url": None,
+    },
+    "openrouter": {
+        "env_var": "OPENROUTER_API_KEY",
+        "base_url": "https://openrouter.ai/api/v1",
+    },
+}
+
+
 @dataclass
 class LLMConfig:
-    provider: str = "zhipu"
-    model: str = "glm-4-plus"
+    provider: str = "deepseek"
+    model: str = "deepseek-v4-pro"
 
     @property
     def api_key_env_var(self) -> str:
-        mapping = {
-            "zhipu": "ZHIPU_API_KEY",
-            "anthropic": "ANTHROPIC_API_KEY",
-            "openai": "OPENAI_API_KEY",
-            "deepseek": "DEEPSEEK_API_KEY",
-            "openrouter": "OPENROUTER_API_KEY",
-        }
-        return mapping.get(self.provider, f"{self.provider.upper()}_API_KEY")
+        cfg = PROVIDER_CONFIG.get(self.provider)
+        return cfg["env_var"] if cfg else f"{self.provider.upper()}_API_KEY"
 
     @property
     def api_key(self) -> str | None:
         return os.getenv(self.api_key_env_var)
+
+    @property
+    def base_url(self) -> str | None:
+        cfg = PROVIDER_CONFIG.get(self.provider)
+        return cfg["base_url"] if cfg else None
 
 
 @dataclass
@@ -80,10 +103,10 @@ class SubgraphConfig:
 class MantisConfig:
     main_llm: LLMConfig = field(default_factory=LLMConfig)
     critic_llm: LLMConfig = field(
-        default_factory=lambda: LLMConfig(provider="zhipu", model="glm-4-flash")
+        default_factory=lambda: LLMConfig(provider="deepseek", model="deepseek-v4-flash")
     )
     reviewer_llm: LLMConfig = field(
-        default_factory=lambda: LLMConfig(provider="zhipu", model="glm-4-flash")
+        default_factory=lambda: LLMConfig(provider="deepseek", model="deepseek-v4-flash")
     )
     chain: ChainConfig = field(default_factory=ChainConfig)
     subgraphs: SubgraphConfig = field(default_factory=SubgraphConfig)
