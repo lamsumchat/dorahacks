@@ -10,6 +10,7 @@ from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
 
 from mantis.agent.schema import Signal
+from mantis.contracts.registry import _retry_call
 
 ARTIFACT = Path(__file__).resolve().parents[1] / "mantis" / "contracts" / "AlphaSignalRegistry.json"
 
@@ -41,6 +42,23 @@ def test_signal():
         critic_result="PASS",
         critic_notes="Critic verified the anomaly.",
     )
+
+
+def test_retry_call_sleeps_only_between_failed_attempts(monkeypatch):
+    sleep_calls = []
+
+    def fake_sleep(delay):
+        sleep_calls.append(delay)
+
+    def always_fails():
+        raise RuntimeError("rpc unavailable")
+
+    monkeypatch.setattr("mantis.contracts.registry.time.sleep", fake_sleep)
+
+    with pytest.raises(RuntimeError, match="rpc unavailable"):
+        _retry_call(always_fails, attempts=3, delay=0.25)
+
+    assert sleep_calls == [0.25, 0.25]
 
 
 class TestAlphaSignalRegistry:

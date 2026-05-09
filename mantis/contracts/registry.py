@@ -22,12 +22,13 @@ T = TypeVar("T")
 def _retry_call(fn: Callable[[], T], attempts: int = 5, delay: float = 1.5) -> T:
     """Retry short-lived RPC read inconsistencies after freshly mined txs."""
     last_error: Exception | None = None
-    for _ in range(attempts):
+    for attempt in range(attempts):
         try:
             return fn()
         except Exception as e:
             last_error = e
-            time.sleep(delay)
+            if attempt < attempts - 1:
+                time.sleep(delay)
     assert last_error is not None
     raise last_error
 
