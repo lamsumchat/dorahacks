@@ -29,16 +29,32 @@ def main():
         default=30,
         help="Maximum ReAct iterations (default 30).",
     )
+    parser.add_argument(
+        "--no-critic",
+        action="store_true",
+        help="Skip the Critic reflexion loop after the draft signal.",
+    )
+    parser.add_argument(
+        "--critic-rounds",
+        type=int,
+        default=None,
+        help="Max critic rounds (default from config: 2).",
+    )
     args = parser.parse_args()
 
     cfg = load_config()
-    print(f"Loading agent (LLM: {cfg.main_llm.provider}/{cfg.main_llm.model})...")
+    print(
+        f"Loading agent (main LLM: {cfg.main_llm.provider}/{cfg.main_llm.model}, "
+        f"critic LLM: {cfg.critic_llm.provider}/{cfg.critic_llm.model})..."
+    )
 
     agent = ResearchAgent(cfg)
     signal, _state = agent.analyze(
         focus=args.focus,
         verbose=not args.quiet,
         recursion_limit=args.recursion_limit,
+        use_critic=not args.no_critic,
+        max_critic_rounds=args.critic_rounds,
     )
 
     print("\n" + "=" * 70)
