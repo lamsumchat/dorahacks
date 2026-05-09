@@ -1,50 +1,62 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Mantis Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. ReAct-First Agent Design
+The system uses a single ReAct main agent with tool-calling, not a multi-agent pipeline.
+Sub-agents (Critic, Self-Reviewer) are spawned only for specific adversarial or reflective tasks
+and run in isolated contexts. No fixed-role agent teams.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Tool-Layered Architecture
+Tools are organized in layers with clear boundaries:
+- Layer 1 (Data Access): Raw data fetchers, no judgment
+- Layer 2 (Analysis Primitives): Structured analysis on raw data, deterministic where possible
+- Layer 3 (Free Exploration): `run_python` for agent-authored code, sandboxed
+- Layer 4 (Sub-Agents): Critic and Self-Reviewer with independent contexts
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Each layer only depends on layers below it. Tools are independently testable.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### III. Anomaly-Driven Discovery
+Smart money identification is based on behavioral anomaly detection, not pre-curated address lists.
+Known entity labels are enrichment, not the primary signal source.
+The system discovers "who is doing unusual things" rather than "what are known whales doing."
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### IV. Verifiable Signals
+Every signal produced must be verifiable:
+- Structured output format with content hash
+- On-chain recording (Mantle) of signal hash + metadata
+- Full reasoning chain stored off-chain, hash-linked to on-chain record
+- Self-review mechanism for retrospective accuracy assessment
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### V. Minimal On-Chain Footprint
+Smart contracts store only what's necessary for verification (hashes, timestamps, metadata).
+Full content lives off-chain. Gas efficiency over on-chain completeness.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VI. Configurable LLM Backend
+All LLM calls go through a unified config. Provider and model are swappable without code changes.
+Default to strong models for main agent, lightweight models for sub-agents.
+Never hardcode API keys or model names in source code.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Technology Stack
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- **Language**: Python 3.11+
+- **Agent Framework**: LangGraph (minimal, `create_react_agent`)
+- **LLM Interface**: LangChain `init_chat_model` (multi-provider)
+- **Chain Interaction**: web3.py
+- **Smart Contracts**: Solidity ^0.8.20
+- **Dashboard**: Streamlit
+- **Testing**: pytest
+- **Target Chain**: Mantle Network (Mainnet: 5000, Testnet: 5003)
+
+## Development Workflow
+
+- Milestone-based delivery: each milestone produces a runnable artifact
+- AI-assisted development with human review at milestone boundaries
+- Brainstorm decisions documented in `notes/brainstorm-log.md`
+- No premature optimization; working system first, polish second
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Constitution guides all architectural decisions. Deviations require documented justification.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-05-09

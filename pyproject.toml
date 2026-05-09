@@ -1,0 +1,46 @@
+[project]
+name = "mantis"
+version = "0.1.0"
+description = "Mantle Intelligence Signal — AI-powered on-chain alpha detection for Mantle Network"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.4",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.3",
+    "langchain-anthropic>=0.3",
+    "langchain-community>=0.3",
+    "langchain-experimental>=0.3",
+    "web3>=7.0",
+    "httpx>=0.28",
+    "python-dotenv>=1.0",
+    "pydantic>=2.0",
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "streamlit>=1.40",
+    "plotly>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mantis*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
