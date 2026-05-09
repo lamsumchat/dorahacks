@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
+from collections.abc import Callable
+from typing import TypeVar
 
 from web3 import Web3
 from web3.contract import Contract
@@ -13,6 +16,20 @@ from mantis.config import MantisConfig
 
 ARTIFACT = Path(__file__).parent / "AlphaSignalRegistry.json"
 DEPLOYED_ADDR_FILE = Path(__file__).parent / "deployed_address.txt"
+T = TypeVar("T")
+
+
+def _retry_call(fn: Callable[[], T], attempts: int = 5, delay: float = 1.5) -> T:
+    """Retry short-lived RPC read inconsistencies after freshly mined txs."""
+    last_error: Exception | None = None
+    for _ in range(attempts):
+        try:
+            return fn()
+        except Exception as e:
+            last_error = e
+            time.sleep(delay)
+    assert last_error is not None
+    raise last_error
 
 
 class SignalRegistry:
@@ -69,6 +86,11 @@ class SignalRegistry:
         signed = self.account.sign_transaction(tx)
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
         receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+        if receipt["status"] != 1:
+            raise RuntimeError(
+                f"emitSignal transaction failed: tx={tx_hash.hex()}, "
+                f"gas_used={receipt['gasUsed']}"
+            )
 
         explorer_base = (
             "https://explorer.sepolia.mantle.xyz"
@@ -95,13 +117,15 @@ class SignalRegistry:
 
     def verify_signal(self, signal_id: int, content: str) -> bool:
         """Check if content matches the on-chain hash for a given signal ID."""
-        return self.contract.functions.verifySignal(
-            signal_id, content.encode("utf-8")
-        ).call()
+        return _retry_call(
+            lambda: self.contract.functions.verifySignal(
+                signal_id, content.encode("utf-8")
+            ).call()
+        )
 
     def get_signal(self, signal_id: int) -> dict:
         """Read a signal record from chain."""
-        s = self.contract.functions.signals(signal_id).call()
+        s = _retry_call(lambda: self.contract.functions.signals(signal_id).call())
         return {
             "content_hash": "0x" + s[0].hex(),
             "timestamp": s[1],
@@ -113,4 +137,4 @@ class SignalRegistry:
         }
 
     def get_signal_count(self) -> int:
-        return self.contract.functions.getSignalCount().call()
+        return _retry_call(lambda: self.contract.functions.getSignalCount().call())

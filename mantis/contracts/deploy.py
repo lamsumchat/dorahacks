@@ -46,11 +46,15 @@ def deploy(private_key: str | None = None) -> str:
     contract = w3.eth.contract(abi=artifact["abi"], bytecode=artifact["bytecode"])
 
     nonce = w3.eth.get_transaction_count(acct.address)
-    tx = contract.constructor().build_transaction({
+    constructor = contract.constructor()
+    estimated_gas = constructor.estimate_gas({"from": acct.address})
+    gas_limit = int(estimated_gas * 1.5)
+
+    tx = constructor.build_transaction({
         "from": acct.address,
         "nonce": nonce,
         "chainId": chain_id,
-        "gas": 800_000,
+        "gas": gas_limit,
         "gasPrice": w3.eth.gas_price,
     })
 
@@ -59,6 +63,12 @@ def deploy(private_key: str | None = None) -> str:
     print(f"Tx sent:  {tx_hash.hex()}")
 
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+    if receipt["status"] != 1:
+        raise RuntimeError(
+            f"Deployment transaction failed: tx={tx_hash.hex()}, "
+            f"gas_used={receipt['gasUsed']}, gas_limit={gas_limit}"
+        )
+
     addr = receipt["contractAddress"]
     print(f"Contract deployed at: {addr}")
     print(f"Explorer: https://explorer.sepolia.mantle.xyz/address/{addr}")
